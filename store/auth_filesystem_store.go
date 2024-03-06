@@ -16,12 +16,20 @@ type AuthFilesystemStore struct {
 	storeLocation string
 }
 
-func (s *AuthFilesystemStore) GetAccessToken() (string, error) {
+func (s *AuthFilesystemStore) Get() (*entities.Auth, error) {
 	store, err := s.readStore()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return store.AccessToken, nil
+	return store, nil
+}
+
+func (s *AuthFilesystemStore) Save(record *entities.Auth) error {
+	err := s.updateStore(record)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *AuthFilesystemStore) readStore() (*entities.Auth, error) {
@@ -55,9 +63,11 @@ func (s *AuthFilesystemStore) updateStore(auth *entities.Auth) error {
 }
 
 func NewAuthFilesystemStore(storeLocation string) (*AuthFilesystemStore, error) {
+	// Ensure store location is not blank
 	if storeLocation == "" {
 		return nil, ErrBlankStoreLocation
 	}
+	// TODO: ensure store location is a json file
 	store := &AuthFilesystemStore{
 		storeLocation: storeLocation,
 	}
