@@ -37,6 +37,14 @@ func (a *RefreshingAuthProvider) GetAccessToken() (string, error) {
 	return authRecord.AccessToken, nil
 }
 
+func (a *RefreshingAuthProvider) GetLoginAndAccessToken() (string, string, error) {
+	authRecord, err := a.getAuthRecord()
+	if err != nil {
+		return "", "", err
+	}
+	return authRecord.Login, authRecord.AccessToken, nil
+}
+
 func (a *RefreshingAuthProvider) getAuthRecord() (*entities.AuthRecord, error) {
 	// Get current record
 	currentAuthRecord, err := a.authStore.GetByUserId("")
