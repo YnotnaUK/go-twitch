@@ -22,11 +22,14 @@ var (
 	ErrBlankClientId     error = errors.New("clientId cannot be blank")
 	ErrBlankClientSecret error = errors.New("clientSecret cannot be blank")
 	ErrBlankRefreshToken error = errors.New("refreshToken cannot be blank")
+	ErrNilAuthStore      error = errors.New("authStore cannot be nil")
+	ErrBlankUserId       error = errors.New("userId cannot be blank")
 )
 
 type RefreshingAuthProvider struct {
 	authStore  Storer
 	httpClient *http.Client
+	userId     string
 }
 
 func (a *RefreshingAuthProvider) GetAccessToken() (string, error) {
@@ -47,7 +50,7 @@ func (a *RefreshingAuthProvider) GetLoginAndAccessToken() (string, string, error
 
 func (a *RefreshingAuthProvider) getAuthRecord() (*entities.AuthRecord, error) {
 	// Get current record
-	currentAuthRecord, err := a.authStore.GetByUserId("")
+	currentAuthRecord, err := a.authStore.GetByUserId(a.userId)
 	if err != nil {
 		return nil, err
 	}
@@ -183,13 +186,20 @@ func (a *RefreshingAuthProvider) validateAccessToken(accessToken string) (*Valid
 	return validateTokenSuccess, nil
 }
 
-func NewRefreshingProvider(authStore Storer) (*RefreshingAuthProvider, error) {
+func NewRefreshingProvider(authStore Storer, userId string) (*RefreshingAuthProvider, error) {
+	if authStore == nil {
+		return nil, ErrNilAuthStore
+	}
+	if userId == "" {
+		return nil, ErrBlankUserId
+	}
 	httpClient := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 	provider := &RefreshingAuthProvider{
 		authStore:  authStore,
 		httpClient: httpClient,
+		userId:     userId,
 	}
 	return provider, nil
 }
