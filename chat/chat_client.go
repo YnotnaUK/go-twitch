@@ -32,9 +32,9 @@ type Client struct {
 	connectionOutgoingChannel  chan string
 	connectionIncommingChannel chan string
 	disconnectChannel          chan bool
-	onConnect                  func(message *entities.ChatConnectMessage)
-	onPing                     func(message *entities.ChatPingMessage)
-	onPrivateMessage           func(message *entities.ChatPrivateMessage)
+	onConnect                  []func(message *entities.ChatConnectMessage)
+	onPing                     []func(message *entities.ChatPingMessage)
+	onPrivateMessage           []func(message *entities.ChatPrivateMessage)
 }
 
 func (c *Client) connect() error {
@@ -84,28 +84,37 @@ func (c *Client) connect() error {
 func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) error {
 	switch parsedIrcMessage.Command {
 	case "001":
-		connectMessage := &entities.ChatConnectMessage{
-			Hostname: serverAddress,
-		}
-		if c.onConnect != nil {
-			c.onConnect(connectMessage)
+		// Run handlers if loaded
+		if len(c.onConnect) > 0 {
+			connectMessage := &entities.ChatConnectMessage{
+				Hostname: serverAddress,
+			}
+			for _, handler := range c.onConnect {
+				handler(connectMessage)
+			}
 		}
 	case "PING":
 		response := fmt.Sprintf("PONG :%s", parsedIrcMessage.Params[0])
 		c.send(response)
-		pingMessage := &entities.ChatPingMessage{}
-		if c.onPing != nil {
-			c.onPing(pingMessage)
+		// Run handlers if loaded
+		if len(c.onPing) > 0 {
+			pingMessage := &entities.ChatPingMessage{}
+			for _, handler := range c.onPing {
+				handler(pingMessage)
+			}
 		}
 	case "PRIVMSG":
-		if c.onPrivateMessage != nil {
+		// Run handlers if loaded
+		if len(c.onPrivateMessage) > 0 {
 			privateMessage := &entities.ChatPrivateMessage{
 				Channel:  parsedIrcMessage.Params[0],
 				Message:  strings.TrimPrefix(strings.Join(parsedIrcMessage.Params[1:], " "), ":"),
 				Tags:     parsedIrcMessage.Tags,
 				Username: parsedIrcMessage.Source.Username,
 			}
-			c.onPrivateMessage(privateMessage)
+			for _, handler := range c.onPrivateMessage {
+				handler(privateMessage)
+			}
 		}
 	default:
 		log.Print("Unhandled command!")
@@ -133,15 +142,15 @@ func (c *Client) Join(channel string) error {
 }
 
 func (c *Client) OnConnect(handler func(message *entities.ChatConnectMessage)) {
-	c.onConnect = handler
+	c.onConnect = append(c.onConnect, handler)
 }
 
 func (c *Client) OnPing(handler func(message *entities.ChatPingMessage)) {
-	c.onPing = handler
+	c.onPing = append(c.onPing, handler)
 }
 
 func (c *Client) OnPrivateMessage(handler func(message *entities.ChatPrivateMessage)) {
-	c.onPrivateMessage = handler
+	c.onPrivateMessage = append(c.onPrivateMessage, handler)
 }
 
 func (c *Client) parseRawIrcMessage(rawIrcMessage string) (*entities.IrcMessage, error) {
