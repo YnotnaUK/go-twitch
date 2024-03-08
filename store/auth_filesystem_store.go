@@ -3,7 +3,10 @@ package store
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/ynotnauk/go-twitch/entities"
 )
@@ -17,11 +20,13 @@ type AuthFilesystemStore struct {
 }
 
 func (s *AuthFilesystemStore) GetByUserId(userId string) (*entities.AuthRecord, error) {
+	storeFilePath := fmt.Sprintf("%s/auth.%s.json", s.storeLocation, userId)
 	// Read store
-	fileContents, err := os.ReadFile(s.storeLocation)
+	fileContents, err := os.ReadFile(storeFilePath)
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("loaded file: %s", storeFilePath)
 	// Create struct for auth
 	authRecord := &entities.AuthRecord{}
 	// Write store to struct
@@ -38,11 +43,13 @@ func (s *AuthFilesystemStore) UpdateByUserId(auth *entities.AuthRecord) error {
 	if err != nil {
 		return err
 	}
+	storeFilePath := fmt.Sprintf("%s/auth.%s.json", s.storeLocation, auth.UserId)
 	// Write store
-	err = os.WriteFile(s.storeLocation, fileContents, 0644)
+	err = os.WriteFile(storeFilePath, fileContents, 0644)
 	if err != nil {
 		return err
 	}
+	log.Printf("wrote file: %s", storeFilePath)
 	return nil
 }
 
@@ -51,9 +58,12 @@ func NewAuthFilesystemStore(storeLocation string) (*AuthFilesystemStore, error) 
 	if storeLocation == "" {
 		return nil, ErrBlankStoreLocation
 	}
-	// TODO: ensure store location is a json file
+	// Ensure the path does not have a trailing slash
+	storeLocation = strings.TrimSuffix(storeLocation, "/")
+	// Create store
 	store := &AuthFilesystemStore{
 		storeLocation: storeLocation,
 	}
+	// Return store
 	return store, nil
 }
