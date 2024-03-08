@@ -230,6 +230,17 @@ func (c *Client) parseRawIrcMessageTags(rawIrcMessageTags string) (map[string]st
 	return parsedIrcMessageTags, nil
 }
 
+func (c *Client) Reply(message *entities.ChatPrivateMessage, response string) {
+	// Create line to send
+	line := fmt.Sprintf("@reply-parent-msg-id=%s PRIVMSG %s :%s",
+		message.Tags["id"],
+		message.Channel,
+		response,
+	)
+	// Send the line
+	c.send(line)
+}
+
 func (c *Client) Say(channel string, message string) {
 	// If channel does not start with # add it
 	if !strings.HasPrefix(channel, "#") {

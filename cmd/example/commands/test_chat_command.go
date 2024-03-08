@@ -10,5 +10,5 @@ type TestChatCommand struct{}
 
 func (c *TestChatCommand) Execute(context *entities.ChatCommandContext) {
 	log.Print("The test command has been called")
-	context.Say(context.Message.Channel, "Testing 1 2 3 4 5")
+	context.Reply(context.Message, "Testing 1 2 3 4 5")
 }
