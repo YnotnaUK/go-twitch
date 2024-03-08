@@ -5,6 +5,7 @@ import (
 
 	"github.com/ynotnauk/go-twitch/auth"
 	"github.com/ynotnauk/go-twitch/bot"
+	"github.com/ynotnauk/go-twitch/cmd/example/commands"
 	"github.com/ynotnauk/go-twitch/entities"
 	"github.com/ynotnauk/go-twitch/store"
 )
@@ -26,6 +27,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	// Add Chat Commands
+	bot.OnChatCommand("test", &commands.TestChatCommand{})
 	// Handlers
 	bot.OnTwitchChatConnect(func(message *entities.ChatConnectMessage) {
 		bot.ChatJoin("ynotnauk")
