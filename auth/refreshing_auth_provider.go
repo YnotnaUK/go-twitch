@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ynotnauk/go-twitch/entities"
+	"github.com/ynotnauk/go-twitch/interfaces"
 )
 
 const (
@@ -27,7 +28,7 @@ var (
 )
 
 type RefreshingAuthProvider struct {
-	authStore  Storer
+	authStore  interfaces.AuthStorer
 	httpClient *http.Client
 	userId     string
 }
@@ -186,7 +187,10 @@ func (a *RefreshingAuthProvider) validateAccessToken(accessToken string) (*Valid
 	return validateTokenSuccess, nil
 }
 
-func NewRefreshingProvider(authStore Storer, userId string) (*RefreshingAuthProvider, error) {
+func NewRefreshingProvider(
+	authStore interfaces.AuthStorer,
+	userId string,
+) (*RefreshingAuthProvider, error) {
 	if authStore == nil {
 		return nil, ErrNilAuthStore
 	}
