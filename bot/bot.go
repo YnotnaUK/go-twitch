@@ -39,6 +39,10 @@ func (b *Bot) OnChatJoin(handler func(message *entities.ChatJoinMessage)) {
 	b.chat.OnJoin(handler)
 }
 
+func (b *Bot) OnChatPart(handler func(message *entities.ChatPartMessage)) {
+	b.chat.OnPart(handler)
+}
+
 func (b *Bot) OnChatPrivateMessage(handler func(message *entities.ChatPrivateMessage)) error {
 	b.chat.OnPrivateMessage(handler)
 	return nil

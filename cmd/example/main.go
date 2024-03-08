@@ -36,6 +36,12 @@ func main() {
 			message.Username,
 		)
 	})
+	bot.OnChatPart(func(message *entities.ChatPartMessage) {
+		log.Printf("[%s] %s has left the channel",
+			message.Channel,
+			message.Username,
+		)
+	})
 	bot.OnTwitchChatConnect(func(message *entities.ChatConnectMessage) {
 		bot.ChatJoin("ynotnauk")
 	})
