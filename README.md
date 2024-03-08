@@ -1,6 +1,8 @@
 # go-twitch
 Complete twitch bot written in Go, this is a personal project to learn the Go language while trying to create something that will be useful to me.
 
+**WARNING!:** This bot is in a very alpha state and I would not reconmend using this in production
+
 ## Example
 There will be an example bot in the cmd/example folder which can be run. If you would like to run your own then the below boilerplate will get you started
 
