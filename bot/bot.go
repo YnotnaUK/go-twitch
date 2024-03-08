@@ -23,6 +23,10 @@ func (b *Bot) ChatJoin(channel string) error {
 	return nil
 }
 
+func (b *Bot) ChatSay(channel string, message string) {
+	b.chat.Say(channel, message)
+}
+
 func (b *Bot) OnChatCommand(commandName string, command interfaces.ChatCommander) {
 	b.chatCommands[commandName] = append(b.chatCommands[commandName], command)
 }
@@ -46,6 +50,7 @@ func (b *Bot) OnChatPrivateMessage(handler func(message *entities.ChatPrivateMes
 						commandContext.CommandParams = commandParams
 					}
 					commandContext.Message = message
+					commandContext.Say = b.ChatSay
 					// Call each handler
 					for _, handler := range handlers {
 						handler.Execute(commandContext)

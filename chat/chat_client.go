@@ -230,6 +230,17 @@ func (c *Client) parseRawIrcMessageTags(rawIrcMessageTags string) (map[string]st
 	return parsedIrcMessageTags, nil
 }
 
+func (c *Client) Say(channel string, message string) {
+	// If channel does not start with # add it
+	if !strings.HasPrefix(channel, "#") {
+		channel = fmt.Sprintf("#%s", channel)
+	}
+	// Create line to send
+	line := fmt.Sprintf("PRIVMSG %s :%s", channel, message)
+	// Send the line
+	c.send(line)
+}
+
 func (c *Client) send(line string) {
 	// TODO: below 2 lines are for testing and need to removed at some point
 	log.Println("Sending: " + line)
