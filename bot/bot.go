@@ -40,6 +40,17 @@ func (b *Bot) OnChatJoin(handler func(message *entities.ChatJoinMessage)) {
 }
 
 func (b *Bot) OnChatPrivateMessage(handler func(message *entities.ChatPrivateMessage)) error {
+	b.chat.OnPrivateMessage(handler)
+	return nil
+}
+
+func (b *Bot) OnTwitchChatConnect(handler func(message *entities.ChatConnectMessage)) error {
+	b.chat.OnConnect(handler)
+	return nil
+}
+
+func (b *Bot) Start() {
+	// Create command handler
 	b.chat.OnPrivateMessage(func(message *entities.ChatPrivateMessage) {
 		// Check to see if a command has requested
 		if strings.HasPrefix(message.Message, b.chatCommandPrefix) && len(message.Message) > 1 {
@@ -68,16 +79,6 @@ func (b *Bot) OnChatPrivateMessage(handler func(message *entities.ChatPrivateMes
 			}
 		}
 	})
-	b.chat.OnPrivateMessage(handler)
-	return nil
-}
-
-func (b *Bot) OnTwitchChatConnect(handler func(message *entities.ChatConnectMessage)) error {
-	b.chat.OnConnect(handler)
-	return nil
-}
-
-func (b *Bot) Start() {
 	log.Println("Starting bot...")
 	b.chat.Start()
 }
