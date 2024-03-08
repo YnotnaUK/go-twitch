@@ -30,6 +30,12 @@ func main() {
 	// Add Chat Commands
 	bot.OnChatCommand("test", &commands.TestChatCommand{})
 	// Handlers
+	bot.OnChatJoin(func(message *entities.ChatJoinMessage) {
+		log.Printf("[%s] %s has joined the channel",
+			message.Channel,
+			message.Username,
+		)
+	})
 	bot.OnTwitchChatConnect(func(message *entities.ChatConnectMessage) {
 		bot.ChatJoin("ynotnauk")
 	})

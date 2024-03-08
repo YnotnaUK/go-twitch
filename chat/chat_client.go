@@ -33,6 +33,7 @@ type Client struct {
 	connectionIncommingChannel chan string
 	disconnectChannel          chan bool
 	onConnect                  []func(message *entities.ChatConnectMessage)
+	onJoin                     []func(message *entities.ChatJoinMessage)
 	onPing                     []func(message *entities.ChatPingMessage)
 	onPrivateMessage           []func(message *entities.ChatPrivateMessage)
 }
@@ -93,6 +94,17 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 				handler(connectMessage)
 			}
 		}
+	case "JOIN":
+		// Run handlers if loaded
+		if len(c.onJoin) > 0 {
+			joinMessage := &entities.ChatJoinMessage{
+				Channel:  parsedIrcMessage.Params[0],
+				Username: parsedIrcMessage.Source.Username,
+			}
+			for _, handler := range c.onJoin {
+				handler(joinMessage)
+			}
+		}
 	case "PING":
 		response := fmt.Sprintf("PONG :%s", parsedIrcMessage.Params[0])
 		c.send(response)
@@ -143,6 +155,10 @@ func (c *Client) Join(channel string) error {
 
 func (c *Client) OnConnect(handler func(message *entities.ChatConnectMessage)) {
 	c.onConnect = append(c.onConnect, handler)
+}
+
+func (c *Client) OnJoin(handler func(message *entities.ChatJoinMessage)) {
+	c.onJoin = append(c.onJoin, handler)
 }
 
 func (c *Client) OnPing(handler func(message *entities.ChatPingMessage)) {

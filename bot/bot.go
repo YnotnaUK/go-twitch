@@ -35,6 +35,10 @@ func (b *Bot) OnChatCommand(commandName string, command interfaces.ChatCommander
 	b.chatCommands[commandName] = append(b.chatCommands[commandName], command)
 }
 
+func (b *Bot) OnChatJoin(handler func(message *entities.ChatJoinMessage)) {
+	b.chat.OnJoin(handler)
+}
+
 func (b *Bot) OnChatPrivateMessage(handler func(message *entities.ChatPrivateMessage)) error {
 	b.chat.OnPrivateMessage(func(message *entities.ChatPrivateMessage) {
 		// Check to see if a command has requested
