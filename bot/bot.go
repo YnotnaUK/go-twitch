@@ -20,6 +20,11 @@ func (b *Bot) ChatJoin(channel string) error {
 	return nil
 }
 
+func (b *Bot) OnChatPrivateMessage(handler func(*entities.ChatPrivateMessage)) error {
+	b.chat.OnPrivateMessage(handler)
+	return nil
+}
+
 func (b *Bot) OnTwitchChatConnect(handler func(*entities.ChatConnectMessage)) error {
 	b.chat.OnConnect(handler)
 	return nil

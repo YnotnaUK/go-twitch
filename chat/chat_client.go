@@ -34,6 +34,7 @@ type Client struct {
 	disconnectChannel          chan bool
 	onConnect                  func(message *entities.ChatConnectMessage)
 	onPing                     func(message *entities.ChatPingMessage)
+	onPrivateMessage           func(message *entities.ChatPrivateMessage)
 }
 
 func (c *Client) connect() error {
@@ -96,6 +97,16 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 		if c.onPing != nil {
 			c.onPing(pingMessage)
 		}
+	case "PRIVMSG":
+		if c.onPrivateMessage != nil {
+			privateMessage := &entities.ChatPrivateMessage{
+				Channel:  parsedIrcMessage.Params[0],
+				Message:  strings.TrimPrefix(strings.Join(parsedIrcMessage.Params[1:], " "), ":"),
+				Tags:     parsedIrcMessage.Tags,
+				Username: parsedIrcMessage.Source.Username,
+			}
+			c.onPrivateMessage(privateMessage)
+		}
 	default:
 		log.Print("Unhandled command!")
 		log.Print("================================================================================")
@@ -103,7 +114,7 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 		return nil
 	}
 	// TODO: this is for testing so i can see what commands were handled
-	log.Printf("Command Handled: %s", parsedIrcMessage.Command)
+	// log.Printf("Command Handled: %s", parsedIrcMessage.Command)
 	return nil
 }
 
@@ -127,6 +138,10 @@ func (c *Client) OnConnect(handler func(message *entities.ChatConnectMessage)) {
 
 func (c *Client) OnPing(handler func(message *entities.ChatPingMessage)) {
 	c.onPing = handler
+}
+
+func (c *Client) OnPrivateMessage(handler func(message *entities.ChatPrivateMessage)) {
+	c.onPrivateMessage = handler
 }
 
 func (c *Client) parseRawIrcMessage(rawIrcMessage string) (*entities.IrcMessage, error) {

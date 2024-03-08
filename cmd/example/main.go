@@ -30,6 +30,15 @@ func main() {
 	bot.OnTwitchChatConnect(func(message *entities.ChatConnectMessage) {
 		bot.ChatJoin("ynotnauk")
 	})
+	bot.OnChatPrivateMessage(func(message *entities.ChatPrivateMessage) {
+		log.Printf(
+			"[%s] <%s:%s> %s",
+			message.Channel,
+			message.Tags["user-id"],
+			message.Tags["display-name"],
+			message.Message,
+		)
+	})
 	// Start bot
 	bot.Start()
 }
