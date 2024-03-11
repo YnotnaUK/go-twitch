@@ -321,6 +321,7 @@ func (c *ChatClient) Start() error {
 		err := c.connect()
 		switch err {
 		default:
+			log.Println(err)
 			return err
 		}
 	}
