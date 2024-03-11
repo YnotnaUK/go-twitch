@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/textproto"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -137,7 +138,14 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 		c.pongReceived <- true
 		// Run handlers if loaded
 		if len(c.onPong) > 0 {
-			pongMessage := &entities.ChatPongMessage{}
+			parsedTimestamp, err := strconv.ParseInt(strings.TrimPrefix(parsedIrcMessage.Params[1], ":"), 10, 64)
+			if err != nil {
+				return err
+			}
+			pongMessage := &entities.ChatPongMessage{
+				Server:    parsedIrcMessage.Params[0],
+				Timestamp: parsedTimestamp,
+			}
 			for _, handler := range c.onPong {
 				handler(pongMessage)
 			}
