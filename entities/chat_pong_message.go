@@ -1,3 +1,6 @@
 package entities
 
-type ChatPongMessage struct{}
+type ChatPongMessage struct {
+	Server    string
+	Timestamp int64
+}
