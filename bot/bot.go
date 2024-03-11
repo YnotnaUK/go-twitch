@@ -35,6 +35,11 @@ func (b *Bot) OnChatCommand(commandName string, command interfaces.ChatCommander
 	b.chatCommands[commandName] = append(b.chatCommands[commandName], command)
 }
 
+func (b *Bot) OnChatConnect(handler func(message *entities.ChatConnectMessage)) error {
+	b.chat.OnConnect(handler)
+	return nil
+}
+
 func (b *Bot) OnChatJoin(handler func(message *entities.ChatJoinMessage)) {
 	b.chat.OnJoin(handler)
 }
@@ -45,11 +50,6 @@ func (b *Bot) OnChatPart(handler func(message *entities.ChatPartMessage)) {
 
 func (b *Bot) OnChatPrivateMessage(handler func(message *entities.ChatPrivateMessage)) error {
 	b.chat.OnPrivateMessage(handler)
-	return nil
-}
-
-func (b *Bot) OnTwitchChatConnect(handler func(message *entities.ChatConnectMessage)) error {
-	b.chat.OnConnect(handler)
 	return nil
 }
 
