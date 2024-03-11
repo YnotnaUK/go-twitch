@@ -29,10 +29,6 @@ func main() {
 	// Handlers
 	bot.OnChatConnect(func(message *twitch.ChatConnectMessage) {
 		bot.ChatJoin("ynotnauk")
-		bot.ChatJoin("ynotnabot")
-		bot.ChatJoin("thegiftingchannel")
-		bot.ChatJoin("redrewards")
-		bot.ChatJoin("hitsquadgodfather")
 	})
 	bot.OnChatJoin(func(message *twitch.ChatJoinMessage) {
 		log.Printf("[%s] %s has joined the channel",
