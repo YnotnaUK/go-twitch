@@ -1,4 +1,4 @@
-package chat
+package twitch
 
 import (
 	"bufio"
@@ -14,9 +14,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/ynotnauk/go-twitch/entities"
-	"github.com/ynotnauk/go-twitch/interfaces"
 )
 
 const (
@@ -30,22 +27,22 @@ var (
 	ErrBlankRawIrcMessage error = errors.New("rawIrcMessage cannot be blank")
 )
 
-type Client struct {
-	authProvider               interfaces.AuthProvider
+type ChatClient struct {
+	authProvider               AuthProvider
 	connectionOutgoingChannel  chan string
 	connectionIncommingChannel chan string
 	disconnectChannel          chan bool
 	keepAliveReset             chan bool
-	onConnect                  []func(message *entities.ChatConnectMessage)
-	onJoin                     []func(message *entities.ChatJoinMessage)
-	onPart                     []func(message *entities.ChatPartMessage)
-	onPing                     []func(message *entities.ChatPingMessage)
-	onPong                     []func(message *entities.ChatPongMessage)
-	onPrivateMessage           []func(message *entities.ChatPrivateMessage)
+	onConnect                  []func(message *ChatConnectMessage)
+	onJoin                     []func(message *ChatJoinMessage)
+	onPart                     []func(message *ChatPartMessage)
+	onPing                     []func(message *ChatPingMessage)
+	onPong                     []func(message *ChatPongMessage)
+	onPrivateMessage           []func(message *ChatPrivateMessage)
 	pongReceived               chan bool
 }
 
-func (c *Client) connect() error {
+func (c *ChatClient) connect() error {
 	log.Printf("Attempting to connect to Twitch [%s]", serverAddress)
 
 	// Create a dialer
@@ -90,12 +87,12 @@ func (c *Client) connect() error {
 	return err
 }
 
-func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) error {
+func (c *ChatClient) handleParsedIrcMessage(parsedIrcMessage *IrcMessage) error {
 	switch parsedIrcMessage.Command {
 	case "001":
 		// Run handlers if loaded
 		if len(c.onConnect) > 0 {
-			connectMessage := &entities.ChatConnectMessage{
+			connectMessage := &ChatConnectMessage{
 				Hostname: serverAddress,
 			}
 			for _, handler := range c.onConnect {
@@ -105,7 +102,7 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 	case "JOIN":
 		// Run handlers if loaded
 		if len(c.onJoin) > 0 {
-			joinMessage := &entities.ChatJoinMessage{
+			joinMessage := &ChatJoinMessage{
 				Channel:  parsedIrcMessage.Params[0],
 				Username: parsedIrcMessage.Source.Username,
 			}
@@ -116,7 +113,7 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 	case "PART":
 		// Run handlers if loaded
 		if len(c.onPart) > 0 {
-			partMessage := &entities.ChatPartMessage{
+			partMessage := &ChatPartMessage{
 				Channel:  parsedIrcMessage.Params[0],
 				Username: parsedIrcMessage.Source.Username,
 			}
@@ -129,7 +126,7 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 		c.send(response)
 		// Run handlers if loaded
 		if len(c.onPing) > 0 {
-			pingMessage := &entities.ChatPingMessage{}
+			pingMessage := &ChatPingMessage{}
 			for _, handler := range c.onPing {
 				handler(pingMessage)
 			}
@@ -142,7 +139,7 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 			if err != nil {
 				return err
 			}
-			pongMessage := &entities.ChatPongMessage{
+			pongMessage := &ChatPongMessage{
 				Server:    parsedIrcMessage.Params[0],
 				Timestamp: parsedTimestamp,
 			}
@@ -153,7 +150,7 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 	case "PRIVMSG":
 		// Run handlers if loaded
 		if len(c.onPrivateMessage) > 0 {
-			privateMessage := &entities.ChatPrivateMessage{
+			privateMessage := &ChatPrivateMessage{
 				Channel:  parsedIrcMessage.Params[0],
 				Message:  strings.TrimPrefix(strings.Join(parsedIrcMessage.Params[1:], " "), ":"),
 				Tags:     parsedIrcMessage.Tags,
@@ -174,7 +171,7 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 	return nil
 }
 
-func (c *Client) Join(channel string) error {
+func (c *ChatClient) Join(channel string) error {
 	// TODO: check if channel can be split by commas
 	// If it can we need to check each segment
 	if channel == "" {
@@ -188,37 +185,37 @@ func (c *Client) Join(channel string) error {
 	return nil
 }
 
-func (c *Client) OnConnect(handler func(message *entities.ChatConnectMessage)) {
+func (c *ChatClient) OnConnect(handler func(message *ChatConnectMessage)) {
 	c.onConnect = append(c.onConnect, handler)
 }
 
-func (c *Client) OnJoin(handler func(message *entities.ChatJoinMessage)) {
+func (c *ChatClient) OnJoin(handler func(message *ChatJoinMessage)) {
 	c.onJoin = append(c.onJoin, handler)
 }
 
-func (c *Client) OnPart(handler func(message *entities.ChatPartMessage)) {
+func (c *ChatClient) OnPart(handler func(message *ChatPartMessage)) {
 	c.onPart = append(c.onPart, handler)
 }
 
-func (c *Client) OnPing(handler func(message *entities.ChatPingMessage)) {
+func (c *ChatClient) OnPing(handler func(message *ChatPingMessage)) {
 	c.onPing = append(c.onPing, handler)
 }
 
-func (c *Client) OnPong(handler func(message *entities.ChatPongMessage)) {
+func (c *ChatClient) OnPong(handler func(message *ChatPongMessage)) {
 	c.onPong = append(c.onPong, handler)
 }
 
-func (c *Client) OnPrivateMessage(handler func(message *entities.ChatPrivateMessage)) {
+func (c *ChatClient) OnPrivateMessage(handler func(message *ChatPrivateMessage)) {
 	c.onPrivateMessage = append(c.onPrivateMessage, handler)
 }
 
-func (c *Client) parseRawIrcMessage(rawIrcMessage string) (*entities.IrcMessage, error) {
+func (c *ChatClient) parseRawIrcMessage(rawIrcMessage string) (*IrcMessage, error) {
 	// Ensure rawIrcMessage is not blank
 	if rawIrcMessage == "" {
 		return nil, ErrBlankRawIrcMessage
 	}
 	// Create parsed IrcMessage struct
-	parsedIrcMessage := &entities.IrcMessage{
+	parsedIrcMessage := &IrcMessage{
 		Raw: rawIrcMessage,
 	}
 	// Split the raw irc message into sections
@@ -258,8 +255,8 @@ func (c *Client) parseRawIrcMessage(rawIrcMessage string) (*entities.IrcMessage,
 	return parsedIrcMessage, nil
 }
 
-func (c *Client) parseRawIrcMessageSource(rawIrcMessageSource string) (*entities.IrcMessageSource, error) {
-	parsedIrcMessageSource := &entities.IrcMessageSource{}
+func (c *ChatClient) parseRawIrcMessageSource(rawIrcMessageSource string) (*IrcMessageSource, error) {
+	parsedIrcMessageSource := &IrcMessageSource{}
 	rawIrcMessageSource = strings.TrimPrefix(rawIrcMessageSource, ":")
 	regex := regexp.MustCompile(`!|@`)
 	rawIrcMessageSourceSplit := regex.Split(rawIrcMessageSource, -1)
@@ -277,7 +274,7 @@ func (c *Client) parseRawIrcMessageSource(rawIrcMessageSource string) (*entities
 	return parsedIrcMessageSource, nil
 }
 
-func (c *Client) parseRawIrcMessageTags(rawIrcMessageTags string) (map[string]string, error) {
+func (c *ChatClient) parseRawIrcMessageTags(rawIrcMessageTags string) (map[string]string, error) {
 	parsedIrcMessageTags := make(map[string]string)
 	rawIrcMessageTags = strings.TrimPrefix(rawIrcMessageTags, "@")
 	for _, rawIrcMessageTag := range strings.Split(rawIrcMessageTags, ";") {
@@ -289,7 +286,7 @@ func (c *Client) parseRawIrcMessageTags(rawIrcMessageTags string) (map[string]st
 	return parsedIrcMessageTags, nil
 }
 
-func (c *Client) Reply(message *entities.ChatPrivateMessage, response string) {
+func (c *ChatClient) Reply(message *ChatPrivateMessage, response string) {
 	// Create line to send
 	line := fmt.Sprintf("@reply-parent-msg-id=%s PRIVMSG %s :%s",
 		message.Tags["id"],
@@ -300,7 +297,7 @@ func (c *Client) Reply(message *entities.ChatPrivateMessage, response string) {
 	c.send(line)
 }
 
-func (c *Client) Say(channel string, message string) {
+func (c *ChatClient) Say(channel string, message string) {
 	// If channel does not start with # add it
 	if !strings.HasPrefix(channel, "#") {
 		channel = fmt.Sprintf("#%s", channel)
@@ -311,14 +308,14 @@ func (c *Client) Say(channel string, message string) {
 	c.send(line)
 }
 
-func (c *Client) send(line string) {
+func (c *ChatClient) send(line string) {
 	// TODO: below 2 lines are for testing and need to removed at some point
 	log.Println("Sending: " + line)
 	line = line + "\r\n"
 	c.connectionOutgoingChannel <- line
 }
 
-func (c *Client) Start() error {
+func (c *ChatClient) Start() error {
 	log.Println("Starting chat client")
 	for {
 		err := c.connect()
@@ -329,7 +326,7 @@ func (c *Client) Start() error {
 	}
 }
 
-func (c *Client) startConnectionReader(wg *sync.WaitGroup, connection io.Reader) {
+func (c *ChatClient) startConnectionReader(wg *sync.WaitGroup, connection io.Reader) {
 	log.Println("Starting connection reader")
 	go func() {
 		defer func() {
@@ -355,7 +352,7 @@ func (c *Client) startConnectionReader(wg *sync.WaitGroup, connection io.Reader)
 	}()
 }
 
-func (c *Client) startConnectionWriter(wg *sync.WaitGroup, connection io.Writer) {
+func (c *ChatClient) startConnectionWriter(wg *sync.WaitGroup, connection io.Writer) {
 	log.Println("Starting connection writer")
 	go func() {
 		defer func() {
@@ -373,7 +370,7 @@ func (c *Client) startConnectionWriter(wg *sync.WaitGroup, connection io.Writer)
 	}()
 }
 
-func (c *Client) startKeepAlive(wg *sync.WaitGroup, connection io.Closer) {
+func (c *ChatClient) startKeepAlive(wg *sync.WaitGroup, connection io.Closer) {
 	log.Println("Starting keep alive")
 	go func() {
 		defer func() {
@@ -408,7 +405,7 @@ func (c *Client) startKeepAlive(wg *sync.WaitGroup, connection io.Closer) {
 	}()
 }
 
-func (c *Client) startMessageParser(wg *sync.WaitGroup) {
+func (c *ChatClient) startMessageParser(wg *sync.WaitGroup) {
 	log.Println("Starting message parser")
 	go func() {
 		defer func() {
@@ -433,8 +430,8 @@ func (c *Client) startMessageParser(wg *sync.WaitGroup) {
 	}()
 }
 
-func NewClient(authProvider interfaces.AuthProvider) (*Client, error) {
-	client := &Client{
+func NewChatClient(authProvider AuthProvider) (*ChatClient, error) {
+	chatClient := &ChatClient{
 		authProvider:               authProvider,
 		connectionOutgoingChannel:  make(chan string, 64),
 		connectionIncommingChannel: make(chan string, 64),
@@ -442,5 +439,5 @@ func NewClient(authProvider interfaces.AuthProvider) (*Client, error) {
 		keepAliveReset:             make(chan bool, 16),
 		pongReceived:               make(chan bool, 1),
 	}
-	return client, nil
+	return chatClient, nil
 }

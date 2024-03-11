@@ -1,4 +1,4 @@
-package store
+package twitch
 
 import (
 	"encoding/json"
@@ -7,8 +7,6 @@ import (
 	"log"
 	"os"
 	"strings"
-
-	"github.com/ynotnauk/go-twitch/entities"
 )
 
 var (
@@ -19,7 +17,7 @@ type AuthFilesystemStore struct {
 	storeLocation string
 }
 
-func (s *AuthFilesystemStore) GetByUserId(userId string) (*entities.AuthRecord, error) {
+func (s *AuthFilesystemStore) GetByUserId(userId string) (*AuthRecord, error) {
 	storeFilePath := fmt.Sprintf("%s/auth.%s.json", s.storeLocation, userId)
 	// Read store
 	fileContents, err := os.ReadFile(storeFilePath)
@@ -28,7 +26,7 @@ func (s *AuthFilesystemStore) GetByUserId(userId string) (*entities.AuthRecord, 
 	}
 	log.Printf("loaded file: %s", storeFilePath)
 	// Create struct for auth
-	authRecord := &entities.AuthRecord{}
+	authRecord := &AuthRecord{}
 	// Write store to struct
 	err = json.Unmarshal(fileContents, authRecord)
 	if err != nil {
@@ -37,7 +35,7 @@ func (s *AuthFilesystemStore) GetByUserId(userId string) (*entities.AuthRecord, 
 	return authRecord, nil
 }
 
-func (s *AuthFilesystemStore) UpdateByUserId(auth *entities.AuthRecord) error {
+func (s *AuthFilesystemStore) UpdateByUserId(auth *AuthRecord) error {
 	// Convert struct into a JSON byte array
 	fileContents, err := json.MarshalIndent(auth, "", "  ")
 	if err != nil {

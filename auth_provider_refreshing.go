@@ -1,4 +1,4 @@
-package auth
+package twitch
 
 import (
 	"bytes"
@@ -7,9 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/ynotnauk/go-twitch/entities"
-	"github.com/ynotnauk/go-twitch/interfaces"
 )
 
 const (
@@ -28,7 +25,7 @@ var (
 )
 
 type RefreshingAuthProvider struct {
-	authStore  interfaces.AuthStorer
+	authStore  AuthStorer
 	httpClient *http.Client
 	userId     string
 }
@@ -49,7 +46,7 @@ func (a *RefreshingAuthProvider) GetLoginAndAccessToken() (string, string, error
 	return authRecord.Login, authRecord.AccessToken, nil
 }
 
-func (a *RefreshingAuthProvider) getAuthRecord() (*entities.AuthRecord, error) {
+func (a *RefreshingAuthProvider) getAuthRecord() (*AuthRecord, error) {
 	// Get current record
 	currentAuthRecord, err := a.authStore.GetByUserId(a.userId)
 	if err != nil {
@@ -73,7 +70,7 @@ func (a *RefreshingAuthProvider) getAuthRecord() (*entities.AuthRecord, error) {
 			return nil, err
 		}
 		// Create new auth record
-		newAuthRecord := &entities.AuthRecord{
+		newAuthRecord := &AuthRecord{
 			AccessToken:  refreshTokenSuccess.AccessToken,
 			ClientId:     validateTokenSuccess.ClientId,
 			ClientSecret: currentAuthRecord.ClientSecret,
@@ -188,7 +185,7 @@ func (a *RefreshingAuthProvider) validateAccessToken(accessToken string) (*Valid
 }
 
 func NewRefreshingProvider(
-	authStore interfaces.AuthStorer,
+	authStore AuthStorer,
 	userId string,
 ) (*RefreshingAuthProvider, error) {
 	if authStore == nil {

@@ -1,21 +1,17 @@
-package bot
+package twitch
 
 import (
 	"log"
 	"strings"
-
-	"github.com/ynotnauk/go-twitch/chat"
-	"github.com/ynotnauk/go-twitch/entities"
-	"github.com/ynotnauk/go-twitch/interfaces"
 )
 
-type Bot struct {
-	chat              *chat.Client
+type TwitchBot struct {
+	chat              *ChatClient
 	chatCommandPrefix string
-	chatCommands      map[string][]interfaces.ChatCommander
+	chatCommands      map[string][]ChatCommander
 }
 
-func (b *Bot) ChatJoin(channel string) error {
+func (b *TwitchBot) ChatJoin(channel string) error {
 	err := b.chat.Join(channel)
 	if err != nil {
 		return err
@@ -23,47 +19,47 @@ func (b *Bot) ChatJoin(channel string) error {
 	return nil
 }
 
-func (b *Bot) ChatReply(message *entities.ChatPrivateMessage, response string) {
+func (b *TwitchBot) ChatReply(message *ChatPrivateMessage, response string) {
 	b.chat.Reply(message, response)
 }
 
-func (b *Bot) ChatSay(channel string, message string) {
+func (b *TwitchBot) ChatSay(channel string, message string) {
 	b.chat.Say(channel, message)
 }
 
-func (b *Bot) OnChatCommand(commandName string, command interfaces.ChatCommander) {
+func (b *TwitchBot) OnChatCommand(commandName string, command ChatCommander) {
 	b.chatCommands[commandName] = append(b.chatCommands[commandName], command)
 }
 
-func (b *Bot) OnChatConnect(handler func(message *entities.ChatConnectMessage)) error {
+func (b *TwitchBot) OnChatConnect(handler func(message *ChatConnectMessage)) error {
 	b.chat.OnConnect(handler)
 	return nil
 }
 
-func (b *Bot) OnChatJoin(handler func(message *entities.ChatJoinMessage)) {
+func (b *TwitchBot) OnChatJoin(handler func(message *ChatJoinMessage)) {
 	b.chat.OnJoin(handler)
 }
 
-func (b *Bot) OnChatPart(handler func(message *entities.ChatPartMessage)) {
+func (b *TwitchBot) OnChatPart(handler func(message *ChatPartMessage)) {
 	b.chat.OnPart(handler)
 }
 
-func (b *Bot) OnChatPing(handler func(message *entities.ChatPingMessage)) {
+func (b *TwitchBot) OnChatPing(handler func(message *ChatPingMessage)) {
 	b.chat.OnPing(handler)
 }
 
-func (b *Bot) OnChatPong(handler func(message *entities.ChatPongMessage)) {
+func (b *TwitchBot) OnChatPong(handler func(message *ChatPongMessage)) {
 	b.chat.OnPong(handler)
 }
 
-func (b *Bot) OnChatPrivateMessage(handler func(message *entities.ChatPrivateMessage)) error {
+func (b *TwitchBot) OnChatPrivateMessage(handler func(message *ChatPrivateMessage)) error {
 	b.chat.OnPrivateMessage(handler)
 	return nil
 }
 
-func (b *Bot) Start() {
+func (b *TwitchBot) Start() {
 	// Create command handler
-	b.chat.OnPrivateMessage(func(message *entities.ChatPrivateMessage) {
+	b.chat.OnPrivateMessage(func(message *ChatPrivateMessage) {
 		// Check to see if a command has requested
 		if strings.HasPrefix(message.Message, b.chatCommandPrefix) && len(message.Message) > 1 {
 			messageParts := strings.Split(message.Message, " ")
@@ -75,7 +71,7 @@ func (b *Bot) Start() {
 				// Ensure there is at least 1 command handler
 				if len(handlers) > 0 {
 					// Build command context
-					commandContext := &entities.ChatCommandContext{}
+					commandContext := &ChatCommandContext{}
 					commandContext.CommandName = commandName
 					if len(messageParts) > 1 {
 						commandContext.CommandParams = commandParams
@@ -95,16 +91,16 @@ func (b *Bot) Start() {
 	b.chat.Start()
 }
 
-func New(authProvider interfaces.AuthProvider) (*Bot, error) {
+func NewBot(authProvider AuthProvider) (*TwitchBot, error) {
 	// Create chat client
-	chat, err := chat.NewClient(authProvider)
+	chat, err := NewChatClient(authProvider)
 	if err != nil {
 		return nil, err
 	}
 	// Create bot
-	bot := &Bot{
+	bot := &TwitchBot{
 		chat:              chat,
-		chatCommands:      make(map[string][]interfaces.ChatCommander),
+		chatCommands:      make(map[string][]ChatCommander),
 		chatCommandPrefix: "!",
 	}
 	return bot, nil

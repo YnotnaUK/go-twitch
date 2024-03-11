@@ -4,54 +4,54 @@ import (
 	"log"
 	"time"
 
-	"github.com/ynotnauk/go-twitch/auth"
-	"github.com/ynotnauk/go-twitch/bot"
-	"github.com/ynotnauk/go-twitch/cmd/example/commands"
-	"github.com/ynotnauk/go-twitch/entities"
-	"github.com/ynotnauk/go-twitch/store"
+	"github.com/ynotnauk/go-twitch"
 )
 
 func main() {
 	log.SetPrefix("[Twitch Bot Example] ")
 	// Create auth store
-	authStore, err := store.NewAuthFilesystemStore("data")
+	authStore, err := twitch.NewAuthFilesystemStore("data")
 	if err != nil {
 		panic(err)
 	}
 	// Create auth provider
-	authProvider, err := auth.NewRefreshingProvider(authStore, "142216347")
+	authProvider, err := twitch.NewRefreshingProvider(authStore, "142216347")
 	if err != nil {
 		panic(err)
 	}
 	// Create complete bot
-	bot, err := bot.New(authProvider)
+	bot, err := twitch.NewBot(authProvider)
 	if err != nil {
 		panic(err)
 	}
 	// Add Chat Commands
-	bot.OnChatCommand("test", &commands.TestChatCommand{})
+	bot.OnChatCommand("test", &HelloChatCommand{})
 	// Handlers
-	bot.OnChatConnect(func(message *entities.ChatConnectMessage) {
+	bot.OnChatConnect(func(message *twitch.ChatConnectMessage) {
 		bot.ChatJoin("ynotnauk")
+		bot.ChatJoin("ynotnabot")
+		bot.ChatJoin("thegiftingchannel")
+		bot.ChatJoin("redrewards")
+		bot.ChatJoin("hitsquadgodfather")
 	})
-	bot.OnChatJoin(func(message *entities.ChatJoinMessage) {
+	bot.OnChatJoin(func(message *twitch.ChatJoinMessage) {
 		log.Printf("[%s] %s has joined the channel",
 			message.Channel,
 			message.Username,
 		)
 	})
-	bot.OnChatPart(func(message *entities.ChatPartMessage) {
+	bot.OnChatPart(func(message *twitch.ChatPartMessage) {
 		log.Printf("[%s] %s has left the channel",
 			message.Channel,
 			message.Username,
 		)
 	})
-	bot.OnChatPong(func(message *entities.ChatPongMessage) {
+	bot.OnChatPong(func(message *twitch.ChatPongMessage) {
 		now := time.Now().Unix()
 		latency := now - message.Timestamp
 		log.Printf("Current Latency: %v ms", latency)
 	})
-	bot.OnChatPrivateMessage(func(message *entities.ChatPrivateMessage) {
+	bot.OnChatPrivateMessage(func(message *twitch.ChatPrivateMessage) {
 		log.Printf(
 			"[%s] <%s:%s> %s",
 			message.Channel,
