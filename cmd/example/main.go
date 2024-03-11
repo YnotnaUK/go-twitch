@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/ynotnauk/go-twitch/auth"
 	"github.com/ynotnauk/go-twitch/bot"
@@ -44,6 +45,11 @@ func main() {
 			message.Channel,
 			message.Username,
 		)
+	})
+	bot.OnChatPong(func(message *entities.ChatPongMessage) {
+		now := time.Now().Unix()
+		latency := now - message.Timestamp
+		log.Printf("Current Latency: %v ms", latency)
 	})
 	bot.OnChatPrivateMessage(func(message *entities.ChatPrivateMessage) {
 		log.Printf(
