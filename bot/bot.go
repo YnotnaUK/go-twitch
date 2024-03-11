@@ -48,6 +48,14 @@ func (b *Bot) OnChatPart(handler func(message *entities.ChatPartMessage)) {
 	b.chat.OnPart(handler)
 }
 
+func (b *Bot) OnChatPing(handler func(message *entities.ChatPingMessage)) {
+	b.chat.OnPing(handler)
+}
+
+func (b *Bot) OnChatPong(handler func(message *entities.ChatPongMessage)) {
+	b.chat.OnPong(handler)
+}
+
 func (b *Bot) OnChatPrivateMessage(handler func(message *entities.ChatPrivateMessage)) error {
 	b.chat.OnPrivateMessage(handler)
 	return nil
