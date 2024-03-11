@@ -19,7 +19,9 @@ import (
 )
 
 const (
-	serverAddress string = "irc.chat.twitch.tv:6697"
+	serverAddress    string        = "irc.chat.twitch.tv:6697"
+	idlePingInterval time.Duration = time.Second * 15
+	pingTimeout      time.Duration = time.Second * 5
 )
 
 var (
@@ -32,11 +34,14 @@ type Client struct {
 	connectionOutgoingChannel  chan string
 	connectionIncommingChannel chan string
 	disconnectChannel          chan bool
+	keepAliveReset             chan bool
 	onConnect                  []func(message *entities.ChatConnectMessage)
 	onJoin                     []func(message *entities.ChatJoinMessage)
 	onPart                     []func(message *entities.ChatPartMessage)
 	onPing                     []func(message *entities.ChatPingMessage)
+	onPong                     []func(message *entities.ChatPongMessage)
 	onPrivateMessage           []func(message *entities.ChatPrivateMessage)
+	pongReceived               chan bool
 }
 
 func (c *Client) connect() error {
@@ -61,10 +66,11 @@ func (c *Client) connect() error {
 
 	// Start all required go routines
 	wg := &sync.WaitGroup{}
-	wg.Add(3)
+	wg.Add(4)
 	c.startMessageParser(wg)
 	c.startConnectionReader(wg, connection)
 	c.startConnectionWriter(wg, connection)
+	c.startKeepAlive(wg, connection)
 
 	// Get login details from auth provider
 	login, accessToken, err := c.authProvider.GetLoginAndAccessToken()
@@ -127,6 +133,15 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 				handler(pingMessage)
 			}
 		}
+	case "PONG":
+		c.pongReceived <- true
+		// Run handlers if loaded
+		if len(c.onPong) > 0 {
+			pongMessage := &entities.ChatPongMessage{}
+			for _, handler := range c.onPong {
+				handler(pongMessage)
+			}
+		}
 	case "PRIVMSG":
 		// Run handlers if loaded
 		if len(c.onPrivateMessage) > 0 {
@@ -143,7 +158,7 @@ func (c *Client) handleParsedIrcMessage(parsedIrcMessage *entities.IrcMessage) e
 	default:
 		log.Print("Unhandled command!")
 		log.Print("================================================================================")
-		log.Printf("%+v", parsedIrcMessage)
+		log.Printf("%v", parsedIrcMessage.Raw)
 		return nil
 	}
 	// TODO: this is for testing so i can see what commands were handled
@@ -179,6 +194,10 @@ func (c *Client) OnPart(handler func(message *entities.ChatPartMessage)) {
 
 func (c *Client) OnPing(handler func(message *entities.ChatPingMessage)) {
 	c.onPing = append(c.onPing, handler)
+}
+
+func (c *Client) OnPong(handler func(message *entities.ChatPongMessage)) {
+	c.onPong = append(c.onPong, handler)
 }
 
 func (c *Client) OnPrivateMessage(handler func(message *entities.ChatPrivateMessage)) {
@@ -321,6 +340,7 @@ func (c *Client) startConnectionReader(wg *sync.WaitGroup, connection io.Reader)
 			rawIrcMessages := strings.Split(line, "\r\n")
 			// Loop over and pass each message to the connectionIncommingChannel
 			for _, rawIrcMessage := range rawIrcMessages {
+				c.keepAliveReset <- true
 				c.connectionIncommingChannel <- rawIrcMessage
 			}
 		}
@@ -340,6 +360,41 @@ func (c *Client) startConnectionWriter(wg *sync.WaitGroup, connection io.Writer)
 				return
 			case rawIrcMessage := <-c.connectionOutgoingChannel:
 				connection.Write([]byte(rawIrcMessage))
+			}
+		}
+	}()
+}
+
+func (c *Client) startKeepAlive(wg *sync.WaitGroup, connection io.Closer) {
+	log.Println("Starting keep alive")
+	go func() {
+		defer func() {
+			log.Println("keep alive has closed")
+			wg.Done()
+		}()
+		for {
+			idleTimer := time.NewTimer(idlePingInterval)
+			select {
+			case <-c.disconnectChannel:
+				idleTimer.Stop()
+				return
+			case <-c.keepAliveReset:
+				idleTimer.Stop()
+				continue
+			case <-idleTimer.C:
+				// Ping the server
+				c.send(fmt.Sprintf("PING :%v", time.Now().Unix()))
+				pingTimer := time.NewTimer(pingTimeout)
+				// Wait for either the server to repond with a pong or timeout
+				select {
+				case <-c.pongReceived:
+					//Received pong message, connection is still good
+					pingTimer.Stop()
+					continue
+				case <-pingTimer.C:
+					// No pong message was received, close connection
+					connection.Close()
+				}
 			}
 		}
 	}()
@@ -376,6 +431,8 @@ func NewClient(authProvider interfaces.AuthProvider) (*Client, error) {
 		connectionOutgoingChannel:  make(chan string, 64),
 		connectionIncommingChannel: make(chan string, 64),
 		disconnectChannel:          make(chan bool),
+		keepAliveReset:             make(chan bool, 16),
+		pongReceived:               make(chan bool, 1),
 	}
 	return client, nil
 }
